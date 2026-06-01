@@ -98,7 +98,7 @@ class AbilityMixin:
         self.deck = returned + self.deck
         random.shuffle(self.deck)
 
-    def decomp_return_cx(self, n=1):
+    def decomp_return_cx(self, n=2):
         """
         山札に戻すCX枚数: n
         """
