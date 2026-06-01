@@ -98,6 +98,20 @@ class AbilityMixin:
         self.deck = returned + self.deck
         random.shuffle(self.deck)
 
+    def decomp_return_cx(self, n=1):
+        """
+        山札に戻すCX枚数: n
+        """
+        import random
+        cx_in_wr = [c for c in self.waiting_room if c == 1]
+        non_cx_in_wr = [c for c in self.waiting_room if c == 0]
+
+        return_count = min(n, len(cx_in_wr))
+        self.waiting_room = non_cx_in_wr + [1] * (len(cx_in_wr) - return_count)
+
+        self.deck = [1] * return_count + self.deck
+        random.shuffle(self.deck)
+
     def decomp_return_noncx(self, n=2):
         """
         山札に戻す非CX枚数: n
@@ -113,7 +127,7 @@ class AbilityMixin:
 
     @staticmethod
     def get_special_attacks():
-        return ["touya", "miku", "michiru", "song_for_all", "koukei", "decomp_keep_cx", "decomp_return_noncx"]
+        return ["touya", "miku", "michiru", "song_for_all", "koukei", "decomp_keep_cx", "decomp_return_cx", "decomp_return_noncx"]
 
     @staticmethod
     def get_special_attack_params(special_attack):
