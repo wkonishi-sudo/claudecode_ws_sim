@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 開発フロー
+
+- 機能追加・修正は必ず**新しいブランチを切って**作業する（`git checkout -b feature/xxx`）
+- 作業完了後は**GitHubにプッシュしてPRを作成**する（`GITHUB_TOKEN` 環境変数を使いGitHub APIでPR作成可能）
+- **マージはオーナー（wkonishi-sudo）が行う**。Claude Code側でmasterへの直接マージはしない
+- マージ後はオーナーがブランチを削除し、Claude Codeは `git pull` でローカルを同期する
+
 ## 実行方法
 
 ```bash
