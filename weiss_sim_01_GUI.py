@@ -1,6 +1,7 @@
+import json
 import random
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -214,7 +215,13 @@ class SimulatorGUI:
         self.attack_sequence_text = tk.Text(self.single_simulation_frame, height=10, width=40, state=tk.DISABLED)
         self.attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
         self.reset_button = tk.Button(self.single_simulation_frame, text="リセット", command=self.reset_attack_sequence, width=8)
-        self.reset_button.grid(row=5, columnspan=3, padx=10, pady=10)
+        self.reset_button.grid(row=5, column=0, padx=10, pady=10)
+
+        self.save_button = tk.Button(self.single_simulation_frame, text="保存", command=self.save_attack_sequence, width=8)
+        self.save_button.grid(row=5, column=1, padx=10, pady=10)
+
+        self.load_button = tk.Button(self.single_simulation_frame, text="読み込み", command=self.load_attack_sequence, width=8)
+        self.load_button.grid(row=5, column=2, padx=10, pady=10)
 
         self.deck_size_label = ttk.Label(self.single_simulation_frame, text="山札 (CX/合計):")
         self.deck_size_label.grid(row=6, column=0, sticky="W", padx=10, pady=10)
@@ -283,6 +290,46 @@ class SimulatorGUI:
         self.attack_sequence_text.delete(1.0, tk.END)
         self.attack_sequence_text.configure(state=tk.DISABLED)
 
+    def save_attack_sequence(self):
+        if not self.attack_sequence:
+            messagebox.showwarning("保存失敗", "行動シーケンスが空です。")
+            return
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSONファイル", "*.json"), ("すべてのファイル", "*.*")],
+            title="行動シーケンスを保存"
+        )
+        if not filepath:
+            return
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump({"attack_sequence": self.attack_sequence}, f, ensure_ascii=False, indent=2)
+        messagebox.showinfo("保存完了", f"保存しました:\n{filepath}")
+
+    def load_attack_sequence(self):
+        filepath = filedialog.askopenfilename(
+            filetypes=[("JSONファイル", "*.json"), ("すべてのファイル", "*.*")],
+            title="行動シーケンスを読み込み"
+        )
+        if not filepath:
+            return
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sequences = data.get("attack_sequence", [])
+            self.reset_attack_sequence()
+            for item in sequences:
+                self.attack_sequence.append(item)
+                self.attack_sequence_text.configure(state=tk.NORMAL)
+                args = item.split()
+                if args[0] in WeissSchwarz.get_special_attacks():
+                    self.attack_sequence_text.insert(tk.END, f"詰め能力: {item}\n")
+                else:
+                    self.attack_sequence_text.insert(tk.END, f"ダメージ: {item}\n")
+                self.attack_sequence_text.configure(state=tk.DISABLED)
+            messagebox.showinfo("読み込み完了", f"読み込みました:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("読み込み失敗", f"ファイルの読み込みに失敗しました。\n{e}")
+
     def simulate(self):
         deck_size_text = self.deck_size_entry.get()
         waiting_room_size_text = self.waiting_room_size_entry.get()
@@ -339,7 +386,13 @@ class SimulatorGUI:
         self.graph_attack_sequence_text = tk.Text(self.graph_simulation_frame, height=10, width=40, state=tk.DISABLED)
         self.graph_attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
         self.graph_reset_button = tk.Button(self.graph_simulation_frame, text="リセット", command=self.reset_graph_attack_sequence, width=8)
-        self.graph_reset_button.grid(row=5, columnspan=3, padx=10, pady=10)
+        self.graph_reset_button.grid(row=5, column=0, padx=10, pady=10)
+
+        self.graph_save_button = tk.Button(self.graph_simulation_frame, text="保存", command=self.save_graph_attack_sequence, width=8)
+        self.graph_save_button.grid(row=5, column=1, padx=10, pady=10)
+
+        self.graph_load_button = tk.Button(self.graph_simulation_frame, text="読み込み", command=self.load_graph_attack_sequence, width=8)
+        self.graph_load_button.grid(row=5, column=2, padx=10, pady=10)
 
         self.graph_level_clock_label = ttk.Label(self.graph_simulation_frame, text="レベル-クロック:")
         self.graph_level_clock_label.grid(row=6, column=0, sticky="W", padx=10, pady=10)
@@ -398,6 +451,46 @@ class SimulatorGUI:
         self.graph_attack_sequence_text.configure(state=tk.NORMAL)
         self.graph_attack_sequence_text.delete(1.0, tk.END)
         self.graph_attack_sequence_text.configure(state=tk.DISABLED)
+
+    def save_graph_attack_sequence(self):
+        if not self.graph_attack_sequence:
+            messagebox.showwarning("保存失敗", "行動シーケンスが空です。")
+            return
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSONファイル", "*.json"), ("すべてのファイル", "*.*")],
+            title="行動シーケンスを保存"
+        )
+        if not filepath:
+            return
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump({"attack_sequence": self.graph_attack_sequence}, f, ensure_ascii=False, indent=2)
+        messagebox.showinfo("保存完了", f"保存しました:\n{filepath}")
+
+    def load_graph_attack_sequence(self):
+        filepath = filedialog.askopenfilename(
+            filetypes=[("JSONファイル", "*.json"), ("すべてのファイル", "*.*")],
+            title="行動シーケンスを読み込み"
+        )
+        if not filepath:
+            return
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sequences = data.get("attack_sequence", [])
+            self.reset_graph_attack_sequence()
+            for item in sequences:
+                self.graph_attack_sequence.append(item)
+                self.graph_attack_sequence_text.configure(state=tk.NORMAL)
+                args = item.split()
+                if args[0] in WeissSchwarz.get_special_attacks():
+                    self.graph_attack_sequence_text.insert(tk.END, f"詰め能力: {item}\n")
+                else:
+                    self.graph_attack_sequence_text.insert(tk.END, f"ダメージ: {item}\n")
+                self.graph_attack_sequence_text.configure(state=tk.DISABLED)
+            messagebox.showinfo("読み込み完了", f"読み込みました:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("読み込み失敗", f"ファイルの読み込みに失敗しました。\n{e}")
 
     def simulate_graph(self):
         level_clock_text = self.graph_level_clock_entry.get()
