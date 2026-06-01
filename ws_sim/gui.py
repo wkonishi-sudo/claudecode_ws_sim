@@ -76,23 +76,29 @@ class SimulatorGUI:
         self.waiting_room_size_entry.grid(row=7, column=1, padx=10, pady=10)
         self.waiting_room_size_entry.insert(0, "3/10")
 
+        self.stock_size_label = ttk.Label(self.single_simulation_frame, text="ストック (CX/合計):")
+        self.stock_size_label.grid(row=8, column=0, sticky="W", padx=10, pady=10)
+        self.stock_size_entry = ttk.Entry(self.single_simulation_frame, width=10)
+        self.stock_size_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.stock_size_entry.insert(0, "0/10")
+
         self.level_clock_label = ttk.Label(self.single_simulation_frame, text="レベル-クロック:")
-        self.level_clock_label.grid(row=8, column=0, sticky="W", padx=10, pady=10)
+        self.level_clock_label.grid(row=9, column=0, sticky="W", padx=10, pady=10)
         self.level_clock_entry = ttk.Entry(self.single_simulation_frame, width=5)
-        self.level_clock_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.level_clock_entry.grid(row=9, column=1, padx=10, pady=10)
         self.level_clock_entry.insert(0, "3-0")
 
         self.atk_deck_label = ttk.Label(self.single_simulation_frame, text="攻撃側山札 (ソウルトリガー/合計):")
-        self.atk_deck_label.grid(row=9, column=0, sticky="W", padx=10, pady=10)
+        self.atk_deck_label.grid(row=10, column=0, sticky="W", padx=10, pady=10)
         self.atk_deck_entry = ttk.Entry(self.single_simulation_frame, width=10)
-        self.atk_deck_entry.grid(row=9, column=1, padx=10, pady=10)
+        self.atk_deck_entry.grid(row=10, column=1, padx=10, pady=10)
         self.atk_deck_entry.insert(0, "0/20")
 
         self.simulate_button = tk.Button(self.single_simulation_frame, text="シミュレーション実行", command=self.simulate, width=20)
-        self.simulate_button.grid(row=10, columnspan=2, padx=10, pady=20)
+        self.simulate_button.grid(row=11, columnspan=2, padx=10, pady=20)
 
         self.result_label = ttk.Label(self.single_simulation_frame, text="", justify="left")
-        self.result_label.grid(row=11, columnspan=2, padx=10, pady=10)
+        self.result_label.grid(row=12, columnspan=2, padx=10, pady=10)
 
         self.update_special_attack_params(self.special_attacks[0])
 
@@ -186,6 +192,7 @@ class SimulatorGUI:
     def simulate(self):
         cx_count, deck_size = map(int, self.deck_size_entry.get().split("/"))
         waiting_room_cx_count, waiting_room_size = map(int, self.waiting_room_size_entry.get().split("/"))
+        stock_cx_count, stock_size = map(int, self.stock_size_entry.get().split("/"))
         level_count, clock_count = map(int, self.level_clock_entry.get().split("-"))
         atk_soul_triggers, atk_deck_size = map(int, self.atk_deck_entry.get().split("/"))
 
@@ -195,9 +202,11 @@ class SimulatorGUI:
 
         deck = [0] * (deck_size - cx_count) + [1] * cx_count
         waiting_room = [0] * (waiting_room_size - waiting_room_cx_count) + [1] * waiting_room_cx_count
+        stock = [0] * (stock_size - stock_cx_count) + [1] * stock_cx_count
 
         for _ in range(simulations):
             ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count,
+                              stock=stock.copy(),
                               atk_soul_triggers=atk_soul_triggers, atk_deck_size=atk_deck_size)
             is_dead, damage_dealt = ws.simulate_attacks(self.attack_sequence)
             if is_dead:
@@ -265,14 +274,20 @@ class SimulatorGUI:
         self.graph_other_area_entry.grid(row=7, column=1, padx=10, pady=10)
         self.graph_other_area_entry.insert(0, "0/10")
 
+        self.graph_stock_label = ttk.Label(self.graph_simulation_frame, text="ストック (CX/合計):")
+        self.graph_stock_label.grid(row=8, column=0, sticky="W", padx=10, pady=10)
+        self.graph_stock_entry = ttk.Entry(self.graph_simulation_frame, width=10)
+        self.graph_stock_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.graph_stock_entry.insert(0, "0/10")
+
         self.graph_atk_deck_label = ttk.Label(self.graph_simulation_frame, text="攻撃側山札 (ソウルトリガー/合計):")
-        self.graph_atk_deck_label.grid(row=8, column=0, sticky="W", padx=10, pady=10)
+        self.graph_atk_deck_label.grid(row=9, column=0, sticky="W", padx=10, pady=10)
         self.graph_atk_deck_entry = ttk.Entry(self.graph_simulation_frame, width=10)
-        self.graph_atk_deck_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.graph_atk_deck_entry.grid(row=9, column=1, padx=10, pady=10)
         self.graph_atk_deck_entry.insert(0, "0/20")
 
         self.graph_simulate_button = tk.Button(self.graph_simulation_frame, text="グラフ描画", command=self.simulate_graph, width=20)
-        self.graph_simulate_button.grid(row=9, columnspan=2, padx=10, pady=20)
+        self.graph_simulate_button.grid(row=10, columnspan=2, padx=10, pady=20)
 
         self.update_graph_special_attack_params(self.graph_special_attacks[0])
 
@@ -366,17 +381,20 @@ class SimulatorGUI:
     def simulate_graph(self):
         level_count, clock_count = map(int, self.graph_level_clock_entry.get().split("-"))
         other_area_cx_count, other_area_count = map(int, self.graph_other_area_entry.get().split("/"))
+        stock_cx_count, stock_count = map(int, self.graph_stock_entry.get().split("/"))
         atk_soul_triggers, atk_deck_size = map(int, self.graph_atk_deck_entry.get().split("/"))
 
-        results = self.simulate_all_decks(level_count, clock_count, other_area_count, other_area_cx_count, 10000,
+        fixed_count = level_count + clock_count + other_area_count + stock_count
+        results = self.simulate_all_decks(level_count, clock_count, other_area_count, other_area_cx_count,
+                                          stock_count, stock_cx_count, 10000,
                                           atk_soul_triggers, atk_deck_size)
 
         cx_counts = list(range(8 - other_area_cx_count, -1, -1))
-        deck_sizes_dict = {cx: list(range(max(cx, 1), 51 - level_count - clock_count - other_area_count)) for cx in cx_counts}
-        max_deck_size = 50 - level_count - clock_count - other_area_count
+        deck_sizes_dict = {cx: list(range(max(cx, 1), 51 - fixed_count)) for cx in cx_counts}
+        max_deck_size = 50 - fixed_count
 
-        death_rates = [[0] * (51 - level_count - clock_count - other_area_count - max(cx, 1)) for cx in cx_counts]
-        expected_damages = [[0] * (51 - level_count - clock_count - other_area_count - max(cx, 1)) for cx in cx_counts]
+        death_rates = [[0] * (51 - fixed_count - max(cx, 1)) for cx in cx_counts]
+        expected_damages = [[0] * (51 - fixed_count - max(cx, 1)) for cx in cx_counts]
 
         for cx_count, deck_size, death_rate, expected_damage in results:
             death_rates[8 - other_area_cx_count - cx_count][max_deck_size - deck_size] = death_rate
@@ -384,13 +402,16 @@ class SimulatorGUI:
 
         self.plot_graph(cx_counts, deck_sizes_dict, death_rates, expected_damages)
 
-    def simulate_all_decks(self, level_count, clock_count, other_area_count, other_area_cx_count, simulations,
+    def simulate_all_decks(self, level_count, clock_count, other_area_count, other_area_cx_count,
+                           stock_count, stock_cx_count, simulations,
                            atk_soul_triggers=0, atk_deck_size=20):
         results = []
+        fixed_count = level_count + clock_count + other_area_count + stock_count
+        stock = [0] * (stock_count - stock_cx_count) + [1] * stock_cx_count
         for cx_count in range(8 - other_area_cx_count, -1, -1):
             min_deck_size = max(cx_count, 1)
-            for deck_size in range(50 - level_count - clock_count - other_area_count, min_deck_size - 1, -1):
-                waiting_room_size = 50 - deck_size - level_count - clock_count - other_area_count
+            for deck_size in range(50 - fixed_count, min_deck_size - 1, -1):
+                waiting_room_size = 50 - deck_size - fixed_count
                 waiting_room_cx_count = 8 - cx_count - other_area_cx_count
                 deck = [0] * (deck_size - cx_count) + [1] * cx_count
                 waiting_room = [0] * (waiting_room_size - waiting_room_cx_count) + [1] * waiting_room_cx_count
@@ -400,6 +421,7 @@ class SimulatorGUI:
                 for _ in range(simulations):
                     ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count,
                                       other_area_count, other_area_cx_count,
+                                      stock=stock.copy(),
                                       atk_soul_triggers=atk_soul_triggers, atk_deck_size=atk_deck_size)
                     is_dead, damage_dealt = ws.simulate_attacks(self.graph_attack_sequence)
                     if is_dead:

@@ -71,6 +71,16 @@ class AbilityMixin:
             self.refresh()
             self.level_up()
 
+    def koukei(self):
+        """
+        """
+        count = len(self.stock)
+        self.waiting_room.extend(self.stock)
+        self.stock = []
+        for _ in range(count):
+            self.refresh()
+            self.stock.append(self.deck.pop(0))
+
     def decomp_keep_cx(self, k=1):
         """
         控え室に残すCX枚数: k
@@ -103,7 +113,7 @@ class AbilityMixin:
 
     @staticmethod
     def get_special_attacks():
-        return ["touya", "miku", "michiru", "song_for_all", "decomp_keep_cx", "decomp_return_noncx"]
+        return ["touya", "miku", "michiru", "song_for_all", "koukei", "decomp_keep_cx", "decomp_return_noncx"]
 
     @staticmethod
     def get_special_attack_params(special_attack):
