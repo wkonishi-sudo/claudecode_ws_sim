@@ -5,12 +5,14 @@ from ws_sim.abilities import AbilityMixin
 class WeissSchwarz(AbilityMixin):
     def __init__(self, deck, waiting_room, level_count, clock_count,
                  other_area_count=0, other_area_cx_count=0,
+                 stock=None,
                  atk_soul_triggers=0, atk_deck_size=20):
         self.deck = deck
         self.waiting_room = waiting_room
         self.clock = [0] * clock_count
         self.level = [0] * level_count
         self.other_area = [0] * (other_area_count - other_area_cx_count) + [1] * other_area_cx_count
+        self.stock = stock if stock is not None else []
         self.initial_level = level_count
         self.initial_clock = clock_count
         self.atk_soul_triggers = atk_soul_triggers
