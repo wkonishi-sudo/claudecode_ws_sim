@@ -219,24 +219,24 @@ class SimulatorGUI:
     def create_single_simulation_widgets(self):
         self.attack_sequence = []
 
-        # ダメージ入力行（label | [entry + checkbox] | button の3列構成）
-        self.damage_label = ttk.Label(self.single_simulation_frame, text="ダメージ / ソウル値:")
-        self.damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
-        self.damage_input_frame = ttk.Frame(self.single_simulation_frame)
-        self.damage_input_frame.grid(row=0, column=1, padx=10, pady=10)
-        self.damage_entry = ttk.Entry(self.damage_input_frame, width=5)
-        self.damage_entry.pack(side=tk.LEFT, padx=(0, 8))
+        # ダメージ入力行: [label + checkbox | entry | 追加]
+        self.damage_label_frame = ttk.Frame(self.single_simulation_frame)
+        self.damage_label_frame.grid(row=0, column=0, sticky="W", padx=10, pady=10)
+        self.damage_label = ttk.Label(self.damage_label_frame, text="ダメージ / ソウル値:")
+        self.damage_label.pack(side=tk.LEFT)
         self.trigger_var = tk.BooleanVar(value=False)
-        self.trigger_check = ttk.Checkbutton(self.damage_input_frame, text="トリガーあり", variable=self.trigger_var)
-        self.trigger_check.pack(side=tk.LEFT)
+        self.trigger_check = ttk.Checkbutton(self.damage_label_frame, text="トリガーあり", variable=self.trigger_var)
+        self.trigger_check.pack(side=tk.LEFT, padx=(8, 0))
+        self.damage_entry = ttk.Entry(self.single_simulation_frame, width=5)
+        self.damage_entry.grid(row=0, column=1, padx=10, pady=10)
         self.damage_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_damage, width=8)
         self.damage_button.grid(row=0, column=2, padx=10, pady=10)
 
-        # 詰め能力行（dropdown | | button の3列構成）
+        # 詰め能力行: [dropdown | entry(空) | 追加]
         self.special_attacks = WeissSchwarz.get_special_attacks()
         self.special_attack_var = tk.StringVar(value=self.special_attacks[0])
         self.special_attack_dropdown = tk.OptionMenu(self.single_simulation_frame, self.special_attack_var, *self.special_attacks, command=self.update_special_attack_params)
-        self.special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="W")
+        self.special_attack_dropdown.grid(row=1, column=0, padx=10, pady=10, sticky="W")
         self.special_attack_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_special_attack, width=8)
         self.special_attack_button.grid(row=1, column=2, padx=10, pady=10)
 
@@ -416,24 +416,24 @@ class SimulatorGUI:
     def create_graph_simulation_widgets(self):
         self.graph_attack_sequence = []
 
-        # ダメージ入力行（label | [entry + checkbox] | button の3列構成）
-        self.graph_damage_label = ttk.Label(self.graph_simulation_frame, text="ダメージ / ソウル値:")
-        self.graph_damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
-        self.graph_damage_input_frame = ttk.Frame(self.graph_simulation_frame)
-        self.graph_damage_input_frame.grid(row=0, column=1, padx=10, pady=10)
-        self.graph_damage_entry = ttk.Entry(self.graph_damage_input_frame, width=5)
-        self.graph_damage_entry.pack(side=tk.LEFT, padx=(0, 8))
+        # ダメージ入力行: [label + checkbox | entry | 追加]
+        self.graph_damage_label_frame = ttk.Frame(self.graph_simulation_frame)
+        self.graph_damage_label_frame.grid(row=0, column=0, sticky="W", padx=10, pady=10)
+        self.graph_damage_label = ttk.Label(self.graph_damage_label_frame, text="ダメージ / ソウル値:")
+        self.graph_damage_label.pack(side=tk.LEFT)
         self.graph_trigger_var = tk.BooleanVar(value=False)
-        self.graph_trigger_check = ttk.Checkbutton(self.graph_damage_input_frame, text="トリガーあり", variable=self.graph_trigger_var)
-        self.graph_trigger_check.pack(side=tk.LEFT)
+        self.graph_trigger_check = ttk.Checkbutton(self.graph_damage_label_frame, text="トリガーあり", variable=self.graph_trigger_var)
+        self.graph_trigger_check.pack(side=tk.LEFT, padx=(8, 0))
+        self.graph_damage_entry = ttk.Entry(self.graph_simulation_frame, width=5)
+        self.graph_damage_entry.grid(row=0, column=1, padx=10, pady=10)
         self.graph_damage_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_damage, width=8)
         self.graph_damage_button.grid(row=0, column=2, padx=10, pady=10)
 
-        # 詰め能力行（dropdown | | button の3列構成）
+        # 詰め能力行: [dropdown | entry(空) | 追加]
         self.graph_special_attacks = WeissSchwarz.get_special_attacks()
         self.graph_special_attack_var = tk.StringVar(value=self.graph_special_attacks[0])
         self.graph_special_attack_dropdown = tk.OptionMenu(self.graph_simulation_frame, self.graph_special_attack_var, *self.graph_special_attacks, command=self.update_graph_special_attack_params)
-        self.graph_special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="W")
+        self.graph_special_attack_dropdown.grid(row=1, column=0, padx=10, pady=10, sticky="W")
         self.graph_special_attack_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_special_attack, width=8)
         self.graph_special_attack_button.grid(row=1, column=2, padx=10, pady=10)
 
