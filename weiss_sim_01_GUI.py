@@ -219,32 +219,34 @@ class SimulatorGUI:
     def create_single_simulation_widgets(self):
         self.attack_sequence = []
 
-        self.damage_label = ttk.Label(self.single_simulation_frame, text="ダメージ / ソウル値:")
-        self.damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
-        self.damage_entry = ttk.Entry(self.single_simulation_frame, width=5)
-        self.damage_entry.grid(row=0, column=1, padx=10, pady=10)
+        self.damage_row_frame = ttk.Frame(self.single_simulation_frame)
+        self.damage_row_frame.grid(row=0, column=0, sticky="W", padx=10, pady=10)
+        self.damage_label = ttk.Label(self.damage_row_frame, text="ダメージ / ソウル値:")
+        self.damage_label.pack(side=tk.LEFT)
+        self.damage_entry = ttk.Entry(self.damage_row_frame, width=5)
+        self.damage_entry.pack(side=tk.LEFT, padx=(4, 0))
         self.trigger_var = tk.BooleanVar(value=False)
         self.trigger_check = ttk.Checkbutton(self.single_simulation_frame, text="トリガーあり", variable=self.trigger_var)
-        self.trigger_check.grid(row=0, column=2, padx=5, pady=10)
+        self.trigger_check.grid(row=0, column=1, padx=5, pady=10)
         self.damage_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_damage, width=8)
-        self.damage_button.grid(row=0, column=3, padx=10, pady=10)
+        self.damage_button.grid(row=0, column=2, padx=10, pady=10)
 
         self.special_attacks = WeissSchwarz.get_special_attacks()
         self.special_attack_var = tk.StringVar(value=self.special_attacks[0])
         self.special_attack_dropdown = tk.OptionMenu(self.single_simulation_frame, self.special_attack_var, *self.special_attacks, command=self.update_special_attack_params)
-        self.special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+        self.special_attack_dropdown.grid(row=1, column=0, padx=10, pady=10, sticky="W")
         self.special_attack_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_special_attack, width=8)
-        self.special_attack_button.grid(row=1, column=3, padx=10, pady=10)
+        self.special_attack_button.grid(row=1, column=2, padx=10, pady=10)
 
         self.special_attack_params_frame = ttk.Frame(self.single_simulation_frame)
-        self.special_attack_params_frame.grid(row=2, columnspan=4, padx=10, pady=10)
+        self.special_attack_params_frame.grid(row=2, columnspan=3, padx=10, pady=10)
 
         self.attack_sequence_label = ttk.Label(self.single_simulation_frame, text="選択した行動:")
         self.attack_sequence_label.grid(row=3, column=0, sticky="W", padx=10, pady=10)
         self.attack_sequence_text = tk.Text(self.single_simulation_frame, height=10, width=40, state=tk.DISABLED)
-        self.attack_sequence_text.grid(row=4, columnspan=4, padx=10, pady=10)
+        self.attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
         self.sequence_buttons_frame = ttk.Frame(self.single_simulation_frame)
-        self.sequence_buttons_frame.grid(row=5, columnspan=4, pady=10)
+        self.sequence_buttons_frame.grid(row=5, columnspan=3, pady=10)
         self.reset_button = tk.Button(self.sequence_buttons_frame, text="リセット", command=self.reset_attack_sequence, width=8)
         self.reset_button.pack(side=tk.LEFT, padx=10)
         self.save_button = tk.Button(self.sequence_buttons_frame, text="保存", command=self.save_attack_sequence, width=8)
@@ -277,10 +279,10 @@ class SimulatorGUI:
         self.atk_deck_entry.insert(0, "0/20")
 
         self.simulate_button = tk.Button(self.single_simulation_frame, text="シミュレーション実行", command=self.simulate, width=20)
-        self.simulate_button.grid(row=10, columnspan=4, padx=10, pady=20)
+        self.simulate_button.grid(row=10, columnspan=3, padx=10, pady=20)
 
         self.result_label = ttk.Label(self.single_simulation_frame, text="", justify="left")
-        self.result_label.grid(row=11, columnspan=4, padx=10, pady=10)
+        self.result_label.grid(row=11, columnspan=3, padx=10, pady=10)
 
         self.update_special_attack_params(self.special_attacks[0])
 
@@ -412,32 +414,34 @@ class SimulatorGUI:
     def create_graph_simulation_widgets(self):
         self.graph_attack_sequence = []
 
-        self.graph_damage_label = ttk.Label(self.graph_simulation_frame, text="ダメージ / ソウル値:")
-        self.graph_damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
-        self.graph_damage_entry = ttk.Entry(self.graph_simulation_frame, width=5)
-        self.graph_damage_entry.grid(row=0, column=1, padx=10, pady=10)
+        self.graph_damage_row_frame = ttk.Frame(self.graph_simulation_frame)
+        self.graph_damage_row_frame.grid(row=0, column=0, sticky="W", padx=10, pady=10)
+        self.graph_damage_label = ttk.Label(self.graph_damage_row_frame, text="ダメージ / ソウル値:")
+        self.graph_damage_label.pack(side=tk.LEFT)
+        self.graph_damage_entry = ttk.Entry(self.graph_damage_row_frame, width=5)
+        self.graph_damage_entry.pack(side=tk.LEFT, padx=(4, 0))
         self.graph_trigger_var = tk.BooleanVar(value=False)
         self.graph_trigger_check = ttk.Checkbutton(self.graph_simulation_frame, text="トリガーあり", variable=self.graph_trigger_var)
-        self.graph_trigger_check.grid(row=0, column=2, padx=5, pady=10)
+        self.graph_trigger_check.grid(row=0, column=1, padx=5, pady=10)
         self.graph_damage_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_damage, width=8)
-        self.graph_damage_button.grid(row=0, column=3, padx=10, pady=10)
+        self.graph_damage_button.grid(row=0, column=2, padx=10, pady=10)
 
         self.graph_special_attacks = WeissSchwarz.get_special_attacks()
         self.graph_special_attack_var = tk.StringVar(value=self.graph_special_attacks[0])
         self.graph_special_attack_dropdown = tk.OptionMenu(self.graph_simulation_frame, self.graph_special_attack_var, *self.graph_special_attacks, command=self.update_graph_special_attack_params)
-        self.graph_special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+        self.graph_special_attack_dropdown.grid(row=1, column=0, padx=10, pady=10, sticky="W")
         self.graph_special_attack_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_special_attack, width=8)
-        self.graph_special_attack_button.grid(row=1, column=3, padx=10, pady=10)
+        self.graph_special_attack_button.grid(row=1, column=2, padx=10, pady=10)
 
         self.graph_special_attack_params_frame = ttk.Frame(self.graph_simulation_frame)
-        self.graph_special_attack_params_frame.grid(row=2, columnspan=4, padx=10, pady=10)
+        self.graph_special_attack_params_frame.grid(row=2, columnspan=3, padx=10, pady=10)
 
         self.graph_attack_sequence_label = ttk.Label(self.graph_simulation_frame, text="選択した行動:")
         self.graph_attack_sequence_label.grid(row=3, column=0, sticky="W", padx=10, pady=10)
         self.graph_attack_sequence_text = tk.Text(self.graph_simulation_frame, height=10, width=40, state=tk.DISABLED)
-        self.graph_attack_sequence_text.grid(row=4, columnspan=4, padx=10, pady=10)
+        self.graph_attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
         self.graph_sequence_buttons_frame = ttk.Frame(self.graph_simulation_frame)
-        self.graph_sequence_buttons_frame.grid(row=5, columnspan=4, pady=10)
+        self.graph_sequence_buttons_frame.grid(row=5, columnspan=3, pady=10)
         self.graph_reset_button = tk.Button(self.graph_sequence_buttons_frame, text="リセット", command=self.reset_graph_attack_sequence, width=8)
         self.graph_reset_button.pack(side=tk.LEFT, padx=10)
         self.graph_save_button = tk.Button(self.graph_sequence_buttons_frame, text="保存", command=self.save_graph_attack_sequence, width=8)
@@ -464,7 +468,7 @@ class SimulatorGUI:
         self.graph_atk_deck_entry.insert(0, "0/20")
 
         self.graph_simulate_button = tk.Button(self.graph_simulation_frame, text="グラフ描画", command=self.simulate_graph, width=20)
-        self.graph_simulate_button.grid(row=9, columnspan=4, padx=10, pady=20)
+        self.graph_simulate_button.grid(row=9, columnspan=3, padx=10, pady=20)
 
         self.update_graph_special_attack_params(self.graph_special_attacks[0])
 
