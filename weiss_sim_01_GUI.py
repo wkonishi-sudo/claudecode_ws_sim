@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class WeissSchwarz:
-    def __init__(self, deck, waiting_room, level_count, clock_count, other_area_count=0, other_area_cx_count=0):
+    def __init__(self, deck, waiting_room, level_count, clock_count, other_area_count=0, other_area_cx_count=0, atk_soul_triggers=0, atk_deck_size=20):
         self.deck = deck
         self.waiting_room = waiting_room
         self.clock = [0] * clock_count
@@ -14,7 +14,24 @@ class WeissSchwarz:
         self.other_area = [0] * (other_area_count - other_area_cx_count) + [1] * other_area_cx_count
         self.initial_level = level_count
         self.initial_clock = clock_count
+        self.atk_soul_triggers = atk_soul_triggers
+        self.atk_deck_size = atk_deck_size
         random.shuffle(self.deck)
+
+    def flip_trigger(self):
+        """攻撃側の山札からトリガーを1枚めくる。ソウルトリガーなら1、それ以外は0を返す。"""
+        if self.atk_deck_size == 0:
+            return 0
+        hit = random.random() < self.atk_soul_triggers / self.atk_deck_size
+        if hit:
+            self.atk_soul_triggers -= 1
+        self.atk_deck_size -= 1
+        return 1 if hit else 0
+
+    def attack(self, soul):
+        """トリガーをめくり、ソウル値 + トリガー結果のダメージを与える。"""
+        total = soul + self.flip_trigger()
+        self.damage(total)
 
     def refresh(self):
         if not self.deck:
@@ -131,6 +148,15 @@ class WeissSchwarz:
             args = attack.split()
             func_name = args[0]
             func_args = args[1:]  # 関数の引数を取得
+
+            # 「2t」形式: トリガーありアタック
+            if func_name.endswith("t") and func_name[:-1].lstrip("-").isdigit():
+                try:
+                    self.attack(int(func_name[:-1]))
+                except ValueError:
+                    print(f"Invalid soul value: {func_name}")
+                continue
+
             func = getattr(self, func_name, None)
             if func:
                 try:
@@ -193,29 +219,32 @@ class SimulatorGUI:
     def create_single_simulation_widgets(self):
         self.attack_sequence = []
 
-        self.damage_label = ttk.Label(self.single_simulation_frame, text="ダメージ:")
+        self.damage_label = ttk.Label(self.single_simulation_frame, text="ダメージ / ソウル値:")
         self.damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
         self.damage_entry = ttk.Entry(self.single_simulation_frame, width=5)
         self.damage_entry.grid(row=0, column=1, padx=10, pady=10)
+        self.trigger_var = tk.BooleanVar(value=False)
+        self.trigger_check = ttk.Checkbutton(self.single_simulation_frame, text="トリガーあり", variable=self.trigger_var)
+        self.trigger_check.grid(row=0, column=2, padx=5, pady=10)
         self.damage_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_damage, width=8)
-        self.damage_button.grid(row=0, column=2, padx=10, pady=10)
+        self.damage_button.grid(row=0, column=3, padx=10, pady=10)
 
         self.special_attacks = WeissSchwarz.get_special_attacks()
         self.special_attack_var = tk.StringVar(value=self.special_attacks[0])
         self.special_attack_dropdown = tk.OptionMenu(self.single_simulation_frame, self.special_attack_var, *self.special_attacks, command=self.update_special_attack_params)
         self.special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
         self.special_attack_button = tk.Button(self.single_simulation_frame, text="追加", command=self.add_special_attack, width=8)
-        self.special_attack_button.grid(row=1, column=2, padx=10, pady=10)
+        self.special_attack_button.grid(row=1, column=3, padx=10, pady=10)
 
         self.special_attack_params_frame = ttk.Frame(self.single_simulation_frame)
-        self.special_attack_params_frame.grid(row=2, columnspan=3, padx=10, pady=10)
+        self.special_attack_params_frame.grid(row=2, columnspan=4, padx=10, pady=10)
 
         self.attack_sequence_label = ttk.Label(self.single_simulation_frame, text="選択した行動:")
         self.attack_sequence_label.grid(row=3, column=0, sticky="W", padx=10, pady=10)
         self.attack_sequence_text = tk.Text(self.single_simulation_frame, height=10, width=40, state=tk.DISABLED)
-        self.attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
+        self.attack_sequence_text.grid(row=4, columnspan=4, padx=10, pady=10)
         self.sequence_buttons_frame = ttk.Frame(self.single_simulation_frame)
-        self.sequence_buttons_frame.grid(row=5, columnspan=3, pady=10)
+        self.sequence_buttons_frame.grid(row=5, columnspan=4, pady=10)
         self.reset_button = tk.Button(self.sequence_buttons_frame, text="リセット", command=self.reset_attack_sequence, width=8)
         self.reset_button.pack(side=tk.LEFT, padx=10)
         self.save_button = tk.Button(self.sequence_buttons_frame, text="保存", command=self.save_attack_sequence, width=8)
@@ -241,20 +270,32 @@ class SimulatorGUI:
         self.level_clock_entry.grid(row=8, column=1, padx=10, pady=10)
         self.level_clock_entry.insert(0, "3-0")
 
+        self.atk_deck_label = ttk.Label(self.single_simulation_frame, text="攻撃側山札 (ソウルトリガー/合計):")
+        self.atk_deck_label.grid(row=9, column=0, sticky="W", padx=10, pady=10)
+        self.atk_deck_entry = ttk.Entry(self.single_simulation_frame, width=10)
+        self.atk_deck_entry.grid(row=9, column=1, padx=10, pady=10)
+        self.atk_deck_entry.insert(0, "0/20")
+
         self.simulate_button = tk.Button(self.single_simulation_frame, text="シミュレーション実行", command=self.simulate, width=20)
-        self.simulate_button.grid(row=9, columnspan=3, padx=10, pady=20)
+        self.simulate_button.grid(row=10, columnspan=4, padx=10, pady=20)
 
         self.result_label = ttk.Label(self.single_simulation_frame, text="", justify="left")
-        self.result_label.grid(row=10, columnspan=3, padx=10, pady=10)
+        self.result_label.grid(row=11, columnspan=4, padx=10, pady=10)
 
         self.update_special_attack_params(self.special_attacks[0])
 
     def add_damage(self):
         damage = self.damage_entry.get()
         if damage:
-            self.attack_sequence.append(damage)
+            if self.trigger_var.get():
+                entry = f"{damage}t"
+                label = f"アタック: {damage} + トリガー"
+            else:
+                entry = damage
+                label = f"ダメージ: {damage}"
+            self.attack_sequence.append(entry)
             self.attack_sequence_text.configure(state=tk.NORMAL)
-            self.attack_sequence_text.insert(tk.END, f"ダメージ: {damage}\n")
+            self.attack_sequence_text.insert(tk.END, f"{label}\n")
             self.attack_sequence_text.configure(state=tk.DISABLED)
             self.damage_entry.delete(0, tk.END)
 
@@ -323,6 +364,8 @@ class SimulatorGUI:
                 args = item.split()
                 if args[0] in WeissSchwarz.get_special_attacks():
                     self.attack_sequence_text.insert(tk.END, f"詰め能力: {item}\n")
+                elif args[0].endswith("t"):
+                    self.attack_sequence_text.insert(tk.END, f"アタック: {args[0][:-1]} + トリガー\n")
                 else:
                     self.attack_sequence_text.insert(tk.END, f"ダメージ: {item}\n")
                 self.attack_sequence_text.configure(state=tk.DISABLED)
@@ -334,10 +377,12 @@ class SimulatorGUI:
         deck_size_text = self.deck_size_entry.get()
         waiting_room_size_text = self.waiting_room_size_entry.get()
         level_clock_text = self.level_clock_entry.get()
+        atk_deck_text = self.atk_deck_entry.get()
 
         cx_count, deck_size = map(int, deck_size_text.split("/"))
         waiting_room_cx_count, waiting_room_size = map(int, waiting_room_size_text.split("/"))
         level_count, clock_count = map(int, level_clock_text.split("-"))
+        atk_soul_triggers, atk_deck_size = map(int, atk_deck_text.split("/"))
 
         simulations = 100000
 
@@ -348,7 +393,8 @@ class SimulatorGUI:
         waiting_room = [0] * (waiting_room_size - waiting_room_cx_count) + [1] * waiting_room_cx_count
 
         for _ in range(simulations):
-            ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count)
+            ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count,
+                              atk_soul_triggers=atk_soul_triggers, atk_deck_size=atk_deck_size)
             is_dead, damage_dealt = ws.simulate_attacks(self.attack_sequence)
             if is_dead:
                 total_deaths += 1
@@ -364,29 +410,32 @@ class SimulatorGUI:
     def create_graph_simulation_widgets(self):
         self.graph_attack_sequence = []
 
-        self.graph_damage_label = ttk.Label(self.graph_simulation_frame, text="ダメージ:")
+        self.graph_damage_label = ttk.Label(self.graph_simulation_frame, text="ダメージ / ソウル値:")
         self.graph_damage_label.grid(row=0, column=0, sticky="W", padx=10, pady=10)
         self.graph_damage_entry = ttk.Entry(self.graph_simulation_frame, width=5)
         self.graph_damage_entry.grid(row=0, column=1, padx=10, pady=10)
+        self.graph_trigger_var = tk.BooleanVar(value=False)
+        self.graph_trigger_check = ttk.Checkbutton(self.graph_simulation_frame, text="トリガーあり", variable=self.graph_trigger_var)
+        self.graph_trigger_check.grid(row=0, column=2, padx=5, pady=10)
         self.graph_damage_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_damage, width=8)
-        self.graph_damage_button.grid(row=0, column=2, padx=10, pady=10)
+        self.graph_damage_button.grid(row=0, column=3, padx=10, pady=10)
 
         self.graph_special_attacks = WeissSchwarz.get_special_attacks()
         self.graph_special_attack_var = tk.StringVar(value=self.graph_special_attacks[0])
         self.graph_special_attack_dropdown = tk.OptionMenu(self.graph_simulation_frame, self.graph_special_attack_var, *self.graph_special_attacks, command=self.update_graph_special_attack_params)
         self.graph_special_attack_dropdown.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
         self.graph_special_attack_button = tk.Button(self.graph_simulation_frame, text="追加", command=self.add_graph_special_attack, width=8)
-        self.graph_special_attack_button.grid(row=1, column=2, padx=10, pady=10)
+        self.graph_special_attack_button.grid(row=1, column=3, padx=10, pady=10)
 
         self.graph_special_attack_params_frame = ttk.Frame(self.graph_simulation_frame)
-        self.graph_special_attack_params_frame.grid(row=2, columnspan=3, padx=10, pady=10)
+        self.graph_special_attack_params_frame.grid(row=2, columnspan=4, padx=10, pady=10)
 
         self.graph_attack_sequence_label = ttk.Label(self.graph_simulation_frame, text="選択した行動:")
         self.graph_attack_sequence_label.grid(row=3, column=0, sticky="W", padx=10, pady=10)
         self.graph_attack_sequence_text = tk.Text(self.graph_simulation_frame, height=10, width=40, state=tk.DISABLED)
-        self.graph_attack_sequence_text.grid(row=4, columnspan=3, padx=10, pady=10)
+        self.graph_attack_sequence_text.grid(row=4, columnspan=4, padx=10, pady=10)
         self.graph_sequence_buttons_frame = ttk.Frame(self.graph_simulation_frame)
-        self.graph_sequence_buttons_frame.grid(row=5, columnspan=3, pady=10)
+        self.graph_sequence_buttons_frame.grid(row=5, columnspan=4, pady=10)
         self.graph_reset_button = tk.Button(self.graph_sequence_buttons_frame, text="リセット", command=self.reset_graph_attack_sequence, width=8)
         self.graph_reset_button.pack(side=tk.LEFT, padx=10)
         self.graph_save_button = tk.Button(self.graph_sequence_buttons_frame, text="保存", command=self.save_graph_attack_sequence, width=8)
@@ -406,17 +455,29 @@ class SimulatorGUI:
         self.graph_other_area_entry.grid(row=7, column=1, padx=10, pady=10)
         self.graph_other_area_entry.insert(0, "0/10")
 
+        self.graph_atk_deck_label = ttk.Label(self.graph_simulation_frame, text="攻撃側山札 (ソウルトリガー/合計):")
+        self.graph_atk_deck_label.grid(row=8, column=0, sticky="W", padx=10, pady=10)
+        self.graph_atk_deck_entry = ttk.Entry(self.graph_simulation_frame, width=10)
+        self.graph_atk_deck_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.graph_atk_deck_entry.insert(0, "0/20")
+
         self.graph_simulate_button = tk.Button(self.graph_simulation_frame, text="グラフ描画", command=self.simulate_graph, width=20)
-        self.graph_simulate_button.grid(row=8, columnspan=3, padx=10, pady=20)
+        self.graph_simulate_button.grid(row=9, columnspan=4, padx=10, pady=20)
 
         self.update_graph_special_attack_params(self.graph_special_attacks[0])
 
     def add_graph_damage(self):
         damage = self.graph_damage_entry.get()
         if damage:
-            self.graph_attack_sequence.append(damage)
+            if self.graph_trigger_var.get():
+                entry = f"{damage}t"
+                label = f"アタック: {damage} + トリガー"
+            else:
+                entry = damage
+                label = f"ダメージ: {damage}"
+            self.graph_attack_sequence.append(entry)
             self.graph_attack_sequence_text.configure(state=tk.NORMAL)
-            self.graph_attack_sequence_text.insert(tk.END, f"ダメージ: {damage}\n")
+            self.graph_attack_sequence_text.insert(tk.END, f"{label}\n")
             self.graph_attack_sequence_text.configure(state=tk.DISABLED)
             self.graph_damage_entry.delete(0, tk.END)
 
@@ -485,6 +546,8 @@ class SimulatorGUI:
                 args = item.split()
                 if args[0] in WeissSchwarz.get_special_attacks():
                     self.graph_attack_sequence_text.insert(tk.END, f"詰め能力: {item}\n")
+                elif args[0].endswith("t"):
+                    self.graph_attack_sequence_text.insert(tk.END, f"アタック: {args[0][:-1]} + トリガー\n")
                 else:
                     self.graph_attack_sequence_text.insert(tk.END, f"ダメージ: {item}\n")
                 self.graph_attack_sequence_text.configure(state=tk.DISABLED)
@@ -499,7 +562,11 @@ class SimulatorGUI:
         other_area_text = self.graph_other_area_entry.get()
         other_area_cx_count, other_area_count = map(int, other_area_text.split("/"))
 
-        results = self.simulate_all_decks(level_count, clock_count, other_area_count, other_area_cx_count, 10000)
+        atk_deck_text = self.graph_atk_deck_entry.get()
+        atk_soul_triggers, atk_deck_size = map(int, atk_deck_text.split("/"))
+
+        results = self.simulate_all_decks(level_count, clock_count, other_area_count, other_area_cx_count, 10000,
+                                          atk_soul_triggers, atk_deck_size)
 
         cx_counts = list(range(8 - other_area_cx_count, -1, -1))
         deck_sizes_dict = {cx_count: list(range(max(cx_count, 1), 51 - level_count - clock_count - other_area_count)) for cx_count in cx_counts}
@@ -514,7 +581,8 @@ class SimulatorGUI:
 
         self.plot_graph(cx_counts, deck_sizes_dict, death_rates, expected_damages)
 
-    def simulate_all_decks(self, level_count, clock_count, other_area_count, other_area_cx_count, simulations):
+    def simulate_all_decks(self, level_count, clock_count, other_area_count, other_area_cx_count, simulations,
+                           atk_soul_triggers=0, atk_deck_size=20):
         results = []
 
         for cx_count in range(8 - other_area_cx_count, -1, -1):
@@ -532,7 +600,9 @@ class SimulatorGUI:
                 total_damage = 0
 
                 for _ in range(simulations):
-                    ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count, other_area_count, other_area_cx_count)
+                    ws = WeissSchwarz(deck.copy(), waiting_room.copy(), level_count, clock_count,
+                                      other_area_count, other_area_cx_count,
+                                      atk_soul_triggers=atk_soul_triggers, atk_deck_size=atk_deck_size)
                     is_dead, damage_dealt = ws.simulate_attacks(self.graph_attack_sequence)
                     if is_dead:
                         total_deaths += 1
