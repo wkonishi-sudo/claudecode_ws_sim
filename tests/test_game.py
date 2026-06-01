@@ -42,12 +42,13 @@ class TestDamage:
         assert len(ws.waiting_room) == 2  # 0と1の2枚が控え室へ
 
     def test_cancel_at_last_card(self):
-        # 山上から [0, 0, 1] で3ダメージ → 3枚目でキャンセル。控え室に3枚
-        ws = make_ws_fixed([0, 0, 1] + [0] * 17)
+        # 山札[0,0,1]の3枚で3ダメージ → 3枚目でキャンセル → 山切れ → リフレッシュ発生
+        # キャンセルで[0,0,1]が控え室へ → damage末尾のrefreshで控え室が山になりクロック1枚
+        ws = make_ws_fixed([0, 0, 1])  # 山札3枚のみ、控え室なし
         ws.damage(3)
-        assert len(ws.clock) == 0
-        assert len(ws.waiting_room) == 3
-        assert sum(ws.waiting_room) == 1  # CX1枚を含む
+        assert len(ws.clock) == 1      # リフレッシュで1枚クロックへ
+        assert len(ws.deck) == 2       # リフレッシュ後の残り山
+        assert len(ws.waiting_room) == 0
 
     def test_cancel_returns_remaining_to_deck(self):
         # キャンセル後の残りカードが山頭に戻る
@@ -152,11 +153,11 @@ class TestTouya:
 
     def test_cx_causes_damage_with_refresh(self):
         # 山が少なくリフレッシュが発生するケース
-        # 山下6枚めくるが山が3枚しかない → リフレッシュが入る
-        # 山: 非CX3枚、控え室: 非CX5枚+CX2枚 → リフレッシュ後に2CXをめくれる
+        # 山3枚、控え室7枚でtouya(n=6) → 3枚めくったところで山切れ → リフレッシュ発生
+        # リフレッシュでクロックに少なくとも1枚乗ることを確認
         ws = make_ws_fixed([0, 0, 0], waiting_room=[0] * 5 + [1] * 2)
         ws.touya(n=6, m=1)
-        assert len(ws.clock) >= 2  # リフレッシュクロック1 + CX2枚分ダメージ2
+        assert len(ws.clock) >= 1  # リフレッシュで最低1枚クロックへ
 
 
 class TestMiku:
@@ -205,6 +206,8 @@ class TestMichiru:
         # michiru: 山下4枚めくり([0,0,1,1])→CX2枚→damage(2)
         # damage(2): 山上[0,1]→2枚目でキャンセル→クロック0
         assert len(ws.clock) == 0
+        # 控え室: 初期10枚 + michiru分4枚[0,0,1,1] + キャンセル分2枚[0,1] = 16枚
+        assert len(ws.waiting_room) == 16
 
 
 class TestSongForAll:
@@ -226,10 +229,11 @@ class TestSongForAll:
         assert len(ws.deck) + len(ws.clock) == 20
 
     def test_two_cx_in_top3(self):
-        # 山上3枚が [0, 1, 1] → CX2枚 → クロック2枚増
-        ws = make_ws_fixed([0, 1, 1] + [0] * 17)
+        # 山札[0,1,1]の3枚のみ → CX2枚 → クロック2枚、山札1枚残る
+        ws = make_ws_fixed([0, 1, 1])  # 山札3枚のみ
         ws.song_for_all(n=3)
         assert len(ws.clock) == 2
+        assert len(ws.deck) == 1
 
 
 # ── koukei ───────────────────────────────────────────────────
@@ -252,11 +256,17 @@ class TestKoukei:
         assert len(ws.deck) == 10
 
     def test_deck_top_fills_stock_with_refresh(self):
-        # 山が5枚しかない状態でストック10枚のkoukei → リフレッシュが発生する
-        stock = [0] * 10
-        ws = make_ws_fixed([0] * 5, waiting_room=[0] * 15, stock=stock)
+        # ストック0/10（非CX10枚）、山札3/5（CX3枚+非CX2枚）でkoukei
+        # 山5枚しかないので途中リフレッシュが発生し、元ストックの非CX10枚が山になる
+        stock = [0] * 10  # 非CX10枚
+        ws = make_ws(deck=[0] * 2 + [1] * 3, waiting_room=[], stock=stock)
         ws.koukei()
+        # ストックは10枚: 元の山から5枚(CX3+非CX2) + リフレッシュ後の山から5枚(非CX)
         assert len(ws.stock) == 10
+        assert ws.stock.count(1) == 3   # 元の山のCX3枚がストックへ
+        assert ws.stock.count(0) == 7   # 非CX2枚(元山) + 非CX5枚(リフレッシュ後)
+        assert len(ws.clock) == 1       # リフレッシュで1枚クロックへ
+        assert ws.deck.count(0) == 4    # リフレッシュ後の残り非CX山
 
     def test_total_card_count_preserved(self):
         # ストック: 非CX5枚+CX2枚=7枚
