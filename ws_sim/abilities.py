@@ -57,12 +57,12 @@ class AbilityMixin:
         cx_count = 0
 
         for _ in range(min(n, len(self.deck))):
-            card = self.deck.pop()
+            card = self.deck.pop(0)  # 山上からめくる
             revealed_cards.append(card)
             if card == 1:
                 cx_count += 1
 
-        self.deck.extend(revealed_cards[::-1])
+        self.deck.extend(revealed_cards)
         random.shuffle(self.deck)
 
         for _ in range(cx_count):
