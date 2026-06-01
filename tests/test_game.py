@@ -21,22 +21,33 @@ def make_ws_fixed(deck_cards, waiting_room=None, level=0, clock=0, stock=None):
 
 class TestDamage:
     def test_damage_adds_to_clock(self):
-        # 非CXのみの山→全部クロックに乗る
+        # 非CXのみの山 → 全部クロックに乗る
         ws = make_ws(deck=[0] * 20)
         ws.damage(3)
         assert len(ws.clock) == 3
 
     def test_cancel_stops_damage(self):
-        # 1枚目がCX → キャンセル。クロックは増えない
+        # 1枚目がCX → キャンセル。クロックは増えない、CXが控え室に行く
         ws = make_ws_fixed([1, 0, 0] + [0] * 17)
         ws.damage(3)
         assert len(ws.clock) == 0
+        assert sum(ws.waiting_room) == 1  # CX1枚が控え室に
 
     def test_cancel_mid_sequence(self):
         # 2枚目がCX → ダメージ解決全体がキャンセル（CX以前の非CXもクロックに乗らない）
+        # 控え室には [0, 1] の2枚が入る
         ws = make_ws_fixed([0, 1, 0] + [0] * 17)
         ws.damage(3)
         assert len(ws.clock) == 0
+        assert len(ws.waiting_room) == 2  # 0と1の2枚が控え室へ
+
+    def test_cancel_at_last_card(self):
+        # 山上から [0, 0, 1] で3ダメージ → 3枚目でキャンセル。控え室に3枚
+        ws = make_ws_fixed([0, 0, 1] + [0] * 17)
+        ws.damage(3)
+        assert len(ws.clock) == 0
+        assert len(ws.waiting_room) == 3
+        assert sum(ws.waiting_room) == 1  # CX1枚を含む
 
     def test_cancel_returns_remaining_to_deck(self):
         # キャンセル後の残りカードが山頭に戻る
@@ -48,13 +59,18 @@ class TestDamage:
 
 class TestRefresh:
     def test_refresh_moves_waiting_room_to_deck(self):
-        ws = make_ws(deck=[], waiting_room=[0, 0, 1])
+        # 控え室の [0,0,1] が山に移動し、控え室が空になる
+        ws = make_ws_fixed([], waiting_room=[0, 0, 1])
         ws.refresh()
-        assert len(ws.deck) >= 1  # 1枚はクロックに乗る
         assert ws.waiting_room == []
+        # クロック1枚 + 残り2枚が山に
+        assert len(ws.deck) == 2
+        assert len(ws.clock) == 1
+        # 元の控え室のカードが山に含まれている（合計3枚のうち1枚クロック、2枚山）
+        assert len(ws.deck) + len(ws.clock) == 3
 
     def test_refresh_clock_gets_one_card(self):
-        ws = make_ws(deck=[], waiting_room=[0, 0, 0])
+        ws = make_ws_fixed([], waiting_room=[0, 0, 0])
         ws.refresh()
         assert len(ws.clock) == 1
 
@@ -78,6 +94,16 @@ class TestLevelUp:
         ws.level_up()
         assert len(ws.waiting_room) == 7
 
+    def test_level_up_with_9_clock_leaves_2_remaining(self):
+        # クロック9枚（非CX7枚 + CX2枚）→ 先頭7枚が控え室へ、残り2枚がクロックに残る
+        # クロックは [0,0,0,0,0,0,0,1,1]（末尾2枚がCX）
+        ws = make_ws(deck=[0] * 20)
+        ws.clock = [0, 0, 0, 0, 0, 0, 0, 1, 1]
+        ws.level_up()
+        assert len(ws.level) == 1
+        assert len(ws.clock) == 2
+        assert ws.clock == [1, 1]  # 元の末尾2枚がそのまま残る
+
     def test_no_level_up_below_7(self):
         ws = make_ws(deck=[0] * 20)
         ws.clock = [0] * 6
@@ -99,7 +125,7 @@ class TestLevelUp:
 
 class TestTouya:
     def test_cx_causes_damage(self):
-        # 山下6枚にCX2枚 → 2ダメージ。リフレッシュを防ぐため十分な山を用意
+        # 山下6枚にCX2枚 → 2ダメージ
         ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
         ws.deck = [0] * 14 + [0, 0, 0, 0, 1, 1]
         ws.touya(n=6, m=1)
@@ -111,11 +137,26 @@ class TestTouya:
         assert len(ws.clock) == 0
 
     def test_damage_multiplier(self):
-        # CX1枚 × m=3 → 3ダメージ。リフレッシュを防ぐため十分な山を用意
+        # 山下6枚にCX1枚 × m=3 → 3ダメージ
         ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
         ws.deck = [0] * 19 + [1]
         ws.touya(n=6, m=3)
         assert len(ws.clock) == 3
+
+    def test_multiple_cx_at_bottom(self):
+        # 山下6枚にCX3枚 × m=2 → 6ダメージ
+        ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
+        ws.deck = [0] * 17 + [1, 1, 1]
+        ws.touya(n=6, m=2)
+        assert len(ws.clock) == 6
+
+    def test_cx_causes_damage_with_refresh(self):
+        # 山が少なくリフレッシュが発生するケース
+        # 山下6枚めくるが山が3枚しかない → リフレッシュが入る
+        # 山: 非CX3枚、控え室: 非CX5枚+CX2枚 → リフレッシュ後に2CXをめくれる
+        ws = make_ws_fixed([0, 0, 0], waiting_room=[0] * 5 + [1] * 2)
+        ws.touya(n=6, m=1)
+        assert len(ws.clock) >= 2  # リフレッシュクロック1 + CX2枚分ダメージ2
 
 
 class TestMiku:
@@ -131,6 +172,16 @@ class TestMiku:
         ws.miku(n=4, m=1, k=2)
         assert len(ws.clock) == 0
 
+    def test_partial_cancel(self):
+        # k=2のダメージで2回目だけキャンセル: 山上3枚が [0, 1, 0]
+        # miku(n=4, m=1, k=2): 1回目damage(1)→クロック+1、2回目damage(1)→キャンセル
+        ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
+        ws.deck = [0] * 19 + [1]  # CX1枚を山下に配置（mikuで消費）
+        ws.miku(n=4, m=1, k=2)
+        # CXがmiku解決で控え室に行くので、damage(1)×2は全て非CXから引く
+        # → 2点クロック
+        assert len(ws.clock) == 2
+
 
 class TestMichiru:
     def test_cx_count_times_m_damage(self):
@@ -144,6 +195,15 @@ class TestMichiru:
         # CX0枚 → damage(0)。山が残っているのでリフレッシュは起きない
         ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
         ws.michiru(n=4, m=2)
+        assert len(ws.clock) == 0
+
+    def test_cancel_on_second_damage(self):
+        # CX2枚 × m=1 → damage(2)。山上が [0, 1, ...] → 2点目でキャンセル
+        ws = make_ws(deck=[0] * 20, waiting_room=[0] * 10)
+        ws.deck = [0, 1] + [0] * 16 + [1, 1]  # 山上2枚目がCX、山下2枚がCX
+        ws.michiru(n=4, m=1)
+        # michiru: 山下4枚めくり([0,0,1,1])→CX2枚→damage(2)
+        # damage(2): 山上[0,1]→2枚目でキャンセル→クロック0
         assert len(ws.clock) == 0
 
 
@@ -165,15 +225,24 @@ class TestSongForAll:
         ws.song_for_all(n=3)
         assert len(ws.deck) + len(ws.clock) == 20
 
+    def test_two_cx_in_top3(self):
+        # 山上3枚が [0, 1, 1] → CX2枚 → クロック2枚増
+        ws = make_ws_fixed([0, 1, 1] + [0] * 17)
+        ws.song_for_all(n=3)
+        assert len(ws.clock) == 2
+
 
 # ── koukei ───────────────────────────────────────────────────
 
 class TestKoukei:
     def test_stock_moves_to_waiting_room(self):
-        stock = [0] * 8 + [1] * 2  # 10枚
+        # ストック: 非CX8枚+CX2枚 → 控え室に非CX8枚とCX2枚が移動
+        stock = [0] * 8 + [1] * 2
         ws = make_ws(deck=[0] * 20, waiting_room=[], stock=stock)
         ws.koukei()
         assert len(ws.waiting_room) == 10
+        assert sum(ws.waiting_room) == 2    # CX2枚
+        assert ws.waiting_room.count(0) == 8  # 非CX8枚
 
     def test_deck_top_fills_stock(self):
         stock = [0] * 10
@@ -182,8 +251,16 @@ class TestKoukei:
         assert len(ws.stock) == 10
         assert len(ws.deck) == 10
 
+    def test_deck_top_fills_stock_with_refresh(self):
+        # 山が5枚しかない状態でストック10枚のkoukei → リフレッシュが発生する
+        stock = [0] * 10
+        ws = make_ws_fixed([0] * 5, waiting_room=[0] * 15, stock=stock)
+        ws.koukei()
+        assert len(ws.stock) == 10
+
     def test_total_card_count_preserved(self):
-        stock = [0] * 5 + [1] * 2  # 7枚
+        # ストック: 非CX5枚+CX2枚=7枚
+        stock = [0] * 5 + [1] * 2
         ws = make_ws(deck=[0] * 15, waiting_room=[0] * 5, stock=stock)
         before = len(ws.deck) + len(ws.waiting_room) + len(ws.stock)
         ws.koukei()
@@ -194,8 +271,7 @@ class TestKoukei:
         stock = [1, 1, 0]  # CX2枚
         ws = make_ws(deck=[0] * 20, stock=stock)
         ws.koukei()
-        cx_in_wr = sum(ws.waiting_room)
-        assert cx_in_wr == 2
+        assert sum(ws.waiting_room) == 2
 
     def test_empty_stock_does_nothing(self):
         ws = make_ws(deck=[0] * 20, stock=[])
@@ -213,11 +289,11 @@ class TestDecompKeepCx:
         assert ws.waiting_room == [1]
 
     def test_non_cx_return_to_deck(self):
+        # 控え室: 非CX5枚+CX2枚、k=1 → 非CX5枚+CX1枚が山に戻り、CX1枚が控え室に残る
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 5 + [1] * 2)
-        before_total = len(ws.deck) + len(ws.waiting_room)
         ws.decomp_keep_cx(k=1)
-        after_total = len(ws.deck) + len(ws.waiting_room)
-        assert before_total == after_total
+        assert ws.waiting_room == [1]
+        assert len(ws.deck) == 10 + 5 + 1  # 元の山10 + 非CX5 + 余剰CX1
 
     def test_fewer_cx_than_k_keeps_all(self):
         # 控え室にCX1枚しかないのにk=2 → 1枚だけ残る
@@ -234,16 +310,22 @@ class TestDecompKeepCx:
 
 class TestDecompReturnNoncx:
     def test_returns_n_noncx_to_deck(self):
+        # 控え室: 非CX5枚+CX3枚、n=2 → 非CX2枚が山に戻る
+        # 山: 元の10枚 + 非CX2枚 = 12枚（非CX12枚、CX0枚）
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 5 + [1] * 3)
         ws.decomp_return_noncx(n=2)
-        assert sum(ws.waiting_room) == 3  # CXはそのまま
-        assert len(ws.waiting_room) == 3 + (5 - 2)
+        assert sum(ws.waiting_room) == 3   # CX3枚はそのまま
+        assert ws.waiting_room.count(0) == 3  # 非CX5-2=3枚が残る
+        deck_noncx = ws.deck.count(0)
+        deck_cx = ws.deck.count(1)
+        assert deck_noncx == 12  # 元の非CX10枚 + 戻った非CX2枚
+        assert deck_cx == 0
 
     def test_fewer_noncx_than_n_returns_all(self):
         # 非CX1枚しかないのにn=2 → 1枚だけ戻る
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 1 + [1] * 3)
         ws.decomp_return_noncx(n=2)
-        assert len([c for c in ws.waiting_room if c == 0]) == 0
+        assert ws.waiting_room.count(0) == 0
 
     def test_total_card_count_preserved(self):
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 5 + [1] * 3)
@@ -268,7 +350,7 @@ class TestDecompReturnCx:
     def test_noncx_unchanged_in_waiting_room(self):
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 5 + [1] * 3)
         ws.decomp_return_cx(n=2)
-        assert len([c for c in ws.waiting_room if c == 0]) == 5
+        assert ws.waiting_room.count(0) == 5
 
     def test_total_card_count_preserved(self):
         ws = make_ws(deck=[0] * 10, waiting_room=[0] * 5 + [1] * 3)
