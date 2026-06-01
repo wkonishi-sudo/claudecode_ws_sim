@@ -287,12 +287,14 @@ class SimulatorGUI:
     def add_damage(self):
         damage = self.damage_entry.get()
         if damage:
-            if self.trigger_var.get():
+            if self.trigger_var.get() and not damage.endswith("t"):
                 entry = f"{damage}t"
-                label = f"アタック: {damage} + トリガー"
             else:
                 entry = damage
-                label = f"ダメージ: {damage}"
+            if entry.endswith("t"):
+                label = f"アタック: {entry[:-1]} + トリガー"
+            else:
+                label = f"ダメージ: {entry}"
             self.attack_sequence.append(entry)
             self.attack_sequence_text.configure(state=tk.NORMAL)
             self.attack_sequence_text.insert(tk.END, f"{label}\n")
@@ -469,12 +471,14 @@ class SimulatorGUI:
     def add_graph_damage(self):
         damage = self.graph_damage_entry.get()
         if damage:
-            if self.graph_trigger_var.get():
+            if self.graph_trigger_var.get() and not damage.endswith("t"):
                 entry = f"{damage}t"
-                label = f"アタック: {damage} + トリガー"
             else:
                 entry = damage
-                label = f"ダメージ: {damage}"
+            if entry.endswith("t"):
+                label = f"アタック: {entry[:-1]} + トリガー"
+            else:
+                label = f"ダメージ: {entry}"
             self.graph_attack_sequence.append(entry)
             self.graph_attack_sequence_text.configure(state=tk.NORMAL)
             self.graph_attack_sequence_text.insert(tk.END, f"{label}\n")
