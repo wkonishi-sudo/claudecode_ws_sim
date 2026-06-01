@@ -12,32 +12,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 実行方法
 
 ```bash
-python weiss_sim_01_GUI.py
+python weiss_sim_GUI.py
 ```
 
 依存ライブラリ: `matplotlib`, `tkinter`（標準ライブラリ）
 
+## ファイル構成
+
+```
+weiss_sim_GUI.py      # 起動エントリーポイント（実行するファイル）
+ws_sim/
+├── __init__.py
+├── game.py           # WeissSchwarz コアロジック
+├── abilities.py      # 詰め能力 Mixin（touya/miku/michiru/song_for_all）
+└── gui.py            # SimulatorGUI（UI層）
+```
+
 ## アーキテクチャ概要
 
-単一ファイル構成（`weiss_sim_01_GUI.py`）で、2つのクラスから成る。
+### `ws_sim/game.py` — WeissSchwarz クラス
 
-### `WeissSchwarz` クラス（ゲームロジック）
-
-デッキ・控え室・クロック・レベルの状態を保持し、ヴァイスシュヴァルツのダメージ解決ルールを実装する。
+デッキ・控え室・クロック・レベルの状態を保持し、ヴァイスシュヴァルツのダメージ解決ルールを実装する。`AbilityMixin` を継承して詰め能力を取り込む。
 
 - **`damage(x)`**: x点ダメージを解決。キャンセル発生時はキャンセル以降のカードを山札先頭に戻す。リフレッシュ・レベルアップも内部で処理。
 - **`refresh()`**: 山札が空になったとき、控え室をシャッフルして新しい山札を作り、先頭カードをクロックに乗せる。
 - **`level_up()`**: クロックが7枚以上になったらレベルアップ（上7枚を控え室へ）。
-- **特殊詰め能力**: `touya`, `miku`, `michiru`, `song_for_all` の4種。山下からめくり、CX枚数に応じてダメージを与えるパターン等。
 - **`flip_trigger()`**: 攻撃側山札からトリガーを1枚めくる。ソウルトリガーなら1、それ以外は0を返し、山札状態を更新。
 - **`attack(soul)`**: `flip_trigger()` の結果を加算して `damage()` を呼ぶ。トリガーありアタックに使用。
-- **`simulate_attacks(attack_sequence)`**: 文字列のリストを受け取り、順番に実行。数値文字列は `damage(x)`、`"Nt"` 形式（例: `3t`）は `attack(N)`、それ以外は関数名として解釈。
+- **`simulate_attacks(attack_sequence)`**: 文字列のリストを受け取り順番に実行。数値文字列は `damage(x)`、`"Nt"` 形式（例: `3t`）は `attack(N)`、それ以外は関数名として解釈。
 
-新しい詰め能力を追加する場合は:
-1. `WeissSchwarz` クラスにメソッドを追加（docstringにパラメータ説明を `パラメータ名: 説明` 形式で記載）
+### `ws_sim/abilities.py` — AbilityMixin クラス
+
+詰め能力を Mixin として定義。**新しい詰め能力を追加する場合はこのファイルだけ触ればよい。**
+
+- **`touya(n, m)`**: 山下からn枚めくり、CX枚数×mダメージ。
+- **`miku(n, m, k)`**: 山下からn枚めくり、CXが1枚以上あればk回mダメージ。
+- **`michiru(n, m)`**: 山下からn枚めくり、CX枚数×mダメージを1回。
+- **`song_for_all(n)`**: 山下からn枚公開してシャッフル、CX枚数分クロックに乗せる。
+
+追加手順:
+1. `AbilityMixin` にメソッドを追加（docstringにパラメータ説明を `パラメータ名: 説明` 形式で記載）
 2. `get_special_attacks()` の返却リストに追加
 
-### `SimulatorGUI` クラス（UI層）
+### `ws_sim/gui.py` — SimulatorGUI クラス
 
 tkinterのタブ構成で2つの画面を持つ。
 
