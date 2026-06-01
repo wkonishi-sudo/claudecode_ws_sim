@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 機能追加・修正は必ず**新しいブランチを切って**作業する（`git checkout -b feature/xxx`）
 - 作業完了後は**GitHubにプッシュしてPRを作成**する（`GITHUB_TOKEN` 環境変数を使いGitHub APIでPR作成可能）
+- PR作成時、`Invoke-RestMethod` に渡すボディは **`[System.Text.Encoding]::UTF8.GetBytes(...)`** でUTF-8バイト列に変換してから渡すこと。PowerShellのデフォルトエンコーディング（UTF-16 LE）のままだとPR本文の日本語が文字化けする
 - **マージはオーナー（wkonishi-sudo）が行う**。Claude Code側でmasterへの直接マージはしない
 - マージ後はオーナーがブランチを削除し、Claude Codeは `git pull` でローカルを同期する
 
@@ -49,6 +50,8 @@ ws_sim/
 - **`miku(n, m, k)`**: 山下からn枚めくり、CXが1枚以上あればk回mダメージ。
 - **`michiru(n, m)`**: 山下からn枚めくり、CX枚数×mダメージを1回。
 - **`song_for_all(n)`**: 山上からn枚公開してシャッフル、CX枚数分クロックに乗せる。
+- **`decomp_keep_cx(k)`**: 控え室のCXをk枚残し、残り全て（非CX＋余剰CX）を山札に戻してシャッフル（逆圧縮・CX残し型）。
+- **`decomp_return_noncx(n)`**: 控え室の非CXをn枚まで選んで山札に戻してシャッフル（逆圧縮・非CX戻し型）。
 
 追加手順:
 1. `AbilityMixin` にメソッドを追加（docstringにパラメータ説明を `パラメータ名: 説明` 形式で記載）
