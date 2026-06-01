@@ -58,6 +58,8 @@ ws_sim/
 追加手順:
 1. `AbilityMixin` にメソッドを追加（docstringにパラメータ説明を `パラメータ名: 説明` 形式で記載）
 2. `get_special_attacks()` の返却リストに追加
+3. `tests/test_game.py` に対応するテストクラスを追加
+4. `python -m pytest tests/ -v` を実行して全テストがパスすることを確認してからPRを作成
 
 ### `ws_sim/gui.py` — SimulatorGUI クラス
 
